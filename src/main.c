@@ -21,7 +21,7 @@ int main() {
     display = al_create_display(800, 600);
     if (!display) return -1;
 
-    // carregar imagem
+    // carregar imagem do Botão
     pc = al_load_bitmap("../assets/images/PcTeste.png");
 
     if (!pc) {
@@ -34,8 +34,7 @@ int main() {
     int largura_original = al_get_bitmap_width(pc);
     int altura_original = al_get_bitmap_height(pc);
 
-    // define largura desejada
-    int img_w = 200;
+    int img_w = 400;    // define largura "por enquanto gostei de 400"
 
     // Calcula para ficar proporcional
     int img_h = (altura_original * img_w) / largura_original;
