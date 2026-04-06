@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compilar Allegro",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "src/main.c",
+
+        "-IC:/msys64/mingw64/include",
+        "-LC:/msys64/mingw64/lib",
+
+        "-o",
+        "bin/jogo.exe",
+
+        "-lallegro",
+        "-lallegro_main",
+        "-lallegro_primitives",
+        "-lallegro_font",
+        "-lallegro_ttf",
+        "-lallegro_image"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

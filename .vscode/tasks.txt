@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compilar Allegro",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "src/*.c",
+        "-IC:/allegro/include",
+        "-LC:/allegro/lib",
+        "-o",
+        "bin/jogo.exe",
+
+        "-lallegro-5",
+        "-lallegro_main-5",
+        "-lallegro_primitives-5",
+        "-lallegro_font-5",
+        "-lallegro_ttf-5"
+      ],
+      "group": "build"
+    }
+  ]
+}
