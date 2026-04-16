@@ -22,6 +22,10 @@ typedef struct {
     int img_w;
     int img_h;
 
+    int opcaoCompra;
+
+    int nivelUpgrades[3]; // REQ 9
+
 } Jogo;
 
 // =====================
@@ -34,19 +38,135 @@ typedef struct {
 } Upgrade;
 
 // =====================
-// FUNÇÃO DE INICIALIZAÇÃO
+// INICIALIZAÇÃO
 // =====================
 void inicializarJogo(Jogo *jogo) {
     jogo->pontos = 0;
     jogo->pontosPorClique = 1;
 
-    jogo->larguraTela = 800;
-    jogo->alturaTela = 600;
+    jogo->larguraTela = 1280;
+    jogo->alturaTela = 720;
 
     jogo->img_x = 0;
     jogo->img_y = 0;
     jogo->img_w = 0;
     jogo->img_h = 0;
+
+    jogo->opcaoCompra = 0;
+
+    for (int i = 0; i < 3; i++) {
+        jogo->nivelUpgrades[i] = 0;
+    }
+}
+
+// =====================
+// DESENHAR
+// =====================
+void desenhar(Jogo *jogo,
+              ALLEGRO_BITMAP *pc,
+              ALLEGRO_FONT *font,
+              Upgrade upgrades[],
+              int multiplicador[3][1],
+              int largura_original,
+              int altura_original) {
+
+    al_clear_to_color(al_map_rgb(0, 0, 0));
+
+    // PC
+    al_draw_scaled_bitmap(pc,
+        0, 0,
+        largura_original, altura_original,
+        jogo->img_x, jogo->img_y,
+        jogo->img_w, jogo->img_h,
+        0);
+
+    // Pontos
+    char texto_pontos[50];
+    sprintf(texto_pontos, "Pontos: %d", jogo->pontos);
+    al_draw_text(font, al_map_rgb(255,255,255), 50, 10, 0, texto_pontos);
+
+    // Modo de compra
+    char textoModo[50];
+    sprintf(textoModo, "Compra: %dx", multiplicador[jogo->opcaoCompra][0]);
+    al_draw_text(font, al_map_rgb(255,255,0), 50, 40, 0, textoModo);
+
+    // Upgrades
+    for (int i = 0; i < 3; i++) {
+
+        int mult = multiplicador[jogo->opcaoCompra][0];
+
+        char texto[100];
+        sprintf(texto, "%s Lv.%d - %d",
+                upgrades[i].nome,
+                jogo->nivelUpgrades[i],
+                upgrades[i].custo * mult);
+
+        ALLEGRO_COLOR cor = (jogo->pontos >= upgrades[i].custo * mult)
+                            ? al_map_rgb(0,255,0)
+                            : al_map_rgb(255,0,0);
+
+        al_draw_text(font, cor, 50, 100 + i * 40, 0, texto);
+    }
+
+    al_flip_display();
+}
+
+// =====================
+// CLIQUE
+// =====================
+void tratarClique(Jogo *jogo,
+                  Upgrade upgrades[],
+                  int multiplicador[3][1],
+                  int x, int y) {
+
+    int mult = multiplicador[jogo->opcaoCompra][0];
+
+    // BOTÃO: trocar modo
+    if (x >= 50 && x <= 200 &&
+        y >= 40 && y <= 70) {
+
+        jogo->opcaoCompra++;
+
+        if (jogo->opcaoCompra > 2)
+            jogo->opcaoCompra = 0;
+
+        return;
+    }
+
+    // CLIQUE NO PC
+    int margemX = jogo->img_w * 0.25;
+    int margemY = jogo->img_h * 0.25;
+
+    int x1 = jogo->img_x + margemX;
+    int y1 = jogo->img_y + margemY;
+    int x2 = jogo->img_x + jogo->img_w - margemX;
+    int y2 = jogo->img_y + jogo->img_h - margemY;
+
+    if (x >= x1 && x <= x2 &&
+        y >= y1 && y <= y2) {
+
+        jogo->pontos += jogo->pontosPorClique;
+    }
+
+    // UPGRADES
+    for (int i = 0; i < 3; i++) {
+
+        int y_up = 100 + i * 40;
+
+        if (x >= 50 && x <= 300 &&
+            y >= y_up && y <= y_up + 30) {
+
+            if (jogo->pontos >= upgrades[i].custo * mult) {
+
+                jogo->pontos -= upgrades[i].custo * mult;
+                jogo->pontosPorClique += upgrades[i].bonus * mult;
+
+                jogo->nivelUpgrades[i] += mult;
+
+                printf("Comprou %dx %s\n", mult, upgrades[i].nome);
+            }
+        }
+    }
 }
 
 // =====================
@@ -61,33 +181,32 @@ int main() {
     ALLEGRO_FONT *font = NULL;
 
     Jogo *jogo = malloc(sizeof(Jogo));
-    if (!jogo) {
-        printf("Erro de memoria\n");
-        return -1;
-    }
+    if (!jogo) return -1;
 
     inicializarJogo(jogo);
 
-    // =====================
-    // UPGRADES
-    // =====================
     Upgrade upgrades[3];
 
-    strcpy(upgrades[0].nome, "Melhoria de CPU");
+    strcpy(upgrades[0].nome, "CPU");
     upgrades[0].custo = 10;
     upgrades[0].bonus = 1;
 
-    strcpy(upgrades[1].nome, "Melhoria de GPU");
+    strcpy(upgrades[1].nome, "GPU");
     upgrades[1].custo = 50;
     upgrades[1].bonus = 5;
 
-    strcpy(upgrades[2].nome, "Melhoria de RAM");
+    strcpy(upgrades[2].nome, "RAM");
     upgrades[2].custo = 100;
     upgrades[2].bonus = 10;
 
-    // =====================
-    // INICIALIZA ALLEGRO
-    // =====================
+    // MATRIZ (REQ 8)
+    int multiplicador[3][1] = {
+        {1},
+        {5},
+        {10}
+    };
+
+    // Allegro
     if (!al_init()) return -1;
 
     al_install_mouse();
@@ -97,29 +216,9 @@ int main() {
     al_init_ttf_addon();
 
     display = al_create_display(jogo->larguraTela, jogo->alturaTela);
-    if (!display) {
-        printf("Erro ao criar tela\n");
-        return -1;
-    }
 
-    // =====================
-    // CARREGAR FONTE
-    // =====================
     font = al_load_ttf_font("../assets/fonts/ari-w9500.ttf", 20, 0);
-    if (!font) {
-        printf("Erro ao carregar fonte\n");
-        al_rest(5.0);
-        return -1;
-    }
-
-    // =====================
-    // CARREGAR IMAGEM
-    // =====================
     pc = al_load_bitmap("../assets/images/PcTeste.png");
-    if (!pc) {
-        printf("Erro ao carregar imagem\n");
-        return -1;
-    }
 
     int largura_original = al_get_bitmap_width(pc);
     int altura_original = al_get_bitmap_height(pc);
@@ -130,106 +229,30 @@ int main() {
     jogo->img_x = jogo->larguraTela/2 - jogo->img_w/2;
     jogo->img_y = jogo->alturaTela/2 - jogo->img_h/2;
 
-    // =====================
-    // EVENTOS
-    // =====================
     queue = al_create_event_queue();
     al_register_event_source(queue, al_get_mouse_event_source());
     al_register_event_source(queue, al_get_display_event_source(display));
 
     bool rodando = true;
 
-    // =====================
-    // LOOP PRINCIPAL
-    // =====================
     while (rodando) {
 
-        al_clear_to_color(al_map_rgb(0, 0, 0));
-
-        // DESENHAR PC
-        al_draw_scaled_bitmap(
-            pc,
-            0, 0,
-            largura_original,
-            altura_original,
-            jogo->img_x, jogo->img_y,
-            jogo->img_w, jogo->img_h,
-            0
-        );
-
-        // PONTOS
-        char texto_pontos[50];
-        sprintf(texto_pontos, "Pontos: %d", jogo->pontos);
-
-        al_draw_text(font, al_map_rgb(255,255,255), 50, 10, 0, texto_pontos);
-
-        // UPGRADES
-        for (int i = 0; i < 3; i++) {
-
-            char texto[100];
-            sprintf(texto, "%s - Custo: %d", upgrades[i].nome, upgrades[i].custo);
-
-            ALLEGRO_COLOR cor;
-            if (jogo->pontos >= upgrades[i].custo) {
-                cor = al_map_rgb(0,255,0);
-            } else {
-                cor = al_map_rgb(255,0,0);
-            }
-
-            al_draw_text(font, cor, 50, 100 + i * 40, 0, texto);
-        }
-
-        al_flip_display();
+        desenhar(jogo, pc, font, upgrades, multiplicador,
+                 largura_original, altura_original);
 
         al_wait_for_event(queue, &event);
 
-        if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
+        if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
             rodando = false;
-        }
 
-        // CLIQUE
         if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
 
-            int x = event.mouse.x;
-            int y = event.mouse.y;
-
-            // CLIQUE NO PC
-            int margemX = jogo->img_w * 0.25; // corta 25% dos lados
-            int margemY = jogo->img_h * 0.25;
-
-            int area_x1 = jogo->img_x + margemX;
-            int area_y1 = jogo->img_y + margemY;
-            int area_x2 = jogo->img_x + jogo->img_w - margemX;
-            int area_y2 = jogo->img_y + jogo->img_h - margemY;
-
-            if (x >= area_x1 && x <= area_x2 &&
-            y >= area_y1 && y <= area_y2) {
-
-                jogo->pontos += jogo->pontosPorClique;
-            }
-
-            // CLIQUE NOS UPGRADES
-            for (int i = 0; i < 3; i++) {
-
-                int y_up = 100 + i * 40;
-
-                if (x >= 50 && x <= 300 &&
-                    y >= y_up && y <= y_up + 30) {
-
-                    if (jogo->pontos >= upgrades[i].custo) {
-                        jogo->pontos -= upgrades[i].custo;
-                        jogo->pontosPorClique += upgrades[i].bonus;
-
-                        printf("Comprou: %s\n", upgrades[i].nome);
-                    }
-                }
-            }
+            tratarClique(jogo, upgrades, multiplicador,
+                         event.mouse.x,
+                         event.mouse.y);
         }
     }
 
-    // =====================
-    // LIMPEZA
-    // =====================
     al_destroy_bitmap(pc);
     al_destroy_font(font);
     al_destroy_display(display);
