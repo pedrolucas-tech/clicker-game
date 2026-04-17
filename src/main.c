@@ -256,7 +256,16 @@ int main() {
                          event.mouse.x,
                          event.mouse.y);
     }
+   
+    // =====================
+    // LIMPEZA
+    // =====================
+    al_destroy_bitmap(pc);
+    al_destroy_font(font);
+    al_destroy_event_queue(queue);
+    al_destroy_display(display);
 
     free(jogo);
+
     return 0;
 }
