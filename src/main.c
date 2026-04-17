@@ -24,8 +24,6 @@ typedef struct {
 
     int opcaoCompra;
 
-    int nivelUpgrades[3]; // REQ 9
-
 } Jogo;
 
 // =====================
@@ -36,6 +34,14 @@ typedef struct {
     int custo;
     int bonus;
 } Upgrade;
+
+// =====================
+// REQ 10 - ANINHAMENTO
+// =====================
+typedef struct {
+    Upgrade up;
+    int nivel;
+} Slot;
 
 // =====================
 // INICIALIZAÇÃO
@@ -54,9 +60,6 @@ void inicializarJogo(Jogo *jogo) {
 
     jogo->opcaoCompra = 0;
 
-    for (int i = 0; i < 3; i++) {
-        jogo->nivelUpgrades[i] = 0;
-    }
 }
 
 // =====================
@@ -65,7 +68,7 @@ void inicializarJogo(Jogo *jogo) {
 void desenhar(Jogo *jogo,
               ALLEGRO_BITMAP *pc,
               ALLEGRO_FONT *font,
-              Upgrade upgrades[],
+              Slot slots[],
               int multiplicador[3][1],
               int largura_original,
               int altura_original) {
@@ -90,18 +93,18 @@ void desenhar(Jogo *jogo,
     sprintf(textoModo, "Compra: %dx", multiplicador[jogo->opcaoCompra][0]);
     al_draw_text(font, al_map_rgb(255,255,0), 50, 40, 0, textoModo);
 
-    // Upgrades
+    // Upgrades (AGORA USANDO SLOT)
     for (int i = 0; i < 3; i++) {
 
         int mult = multiplicador[jogo->opcaoCompra][0];
 
         char texto[100];
         sprintf(texto, "%s Lv.%d - %d",
-                upgrades[i].nome,
-                jogo->nivelUpgrades[i],
-                upgrades[i].custo * mult);
+                slots[i].up.nome,
+                slots[i].nivel,
+                slots[i].up.custo * mult);
 
-        ALLEGRO_COLOR cor = (jogo->pontos >= upgrades[i].custo * mult)
+        ALLEGRO_COLOR cor = (jogo->pontos >= slots[i].up.custo * mult)
                             ? al_map_rgb(0,255,0)
                             : al_map_rgb(255,0,0);
 
@@ -115,13 +118,13 @@ void desenhar(Jogo *jogo,
 // CLIQUE
 // =====================
 void tratarClique(Jogo *jogo,
-                  Upgrade upgrades[],
+                  Slot slots[],
                   int multiplicador[3][1],
                   int x, int y) {
 
     int mult = multiplicador[jogo->opcaoCompra][0];
 
-    // BOTÃO: trocar modo
+    // TROCAR MODO
     if (x >= 50 && x <= 200 &&
         y >= 40 && y <= 70) {
 
@@ -148,7 +151,7 @@ void tratarClique(Jogo *jogo,
         jogo->pontos += jogo->pontosPorClique;
     }
 
-    // UPGRADES
+    // UPGRADES (USANDO SLOT)
     for (int i = 0; i < 3; i++) {
 
         int y_up = 100 + i * 40;
@@ -156,14 +159,14 @@ void tratarClique(Jogo *jogo,
         if (x >= 50 && x <= 300 &&
             y >= y_up && y <= y_up + 30) {
 
-            if (jogo->pontos >= upgrades[i].custo * mult) {
+            if (jogo->pontos >= slots[i].up.custo * mult) {
 
-                jogo->pontos -= upgrades[i].custo * mult;
-                jogo->pontosPorClique += upgrades[i].bonus * mult;
+                jogo->pontos -= slots[i].up.custo * mult;
+                jogo->pontosPorClique += slots[i].up.bonus * mult;
 
-                jogo->nivelUpgrades[i] += mult;
+                slots[i].nivel += mult;
 
-                printf("Comprou %dx %s\n", mult, upgrades[i].nome);
+                printf("Comprou %dx %s\n", mult, slots[i].up.nome);
             }
         }
     }
@@ -185,21 +188,25 @@ int main() {
 
     inicializarJogo(jogo);
 
-    Upgrade upgrades[3];
+    Slot slots[3];
 
-    strcpy(upgrades[0].nome, "CPU");
-    upgrades[0].custo = 10;
-    upgrades[0].bonus = 1;
+    // Inicializa upgrades dentro do Slot
+    strcpy(slots[0].up.nome, "CPU");
+    slots[0].up.custo = 10;
+    slots[0].up.bonus = 1;
+    slots[0].nivel = 0;
 
-    strcpy(upgrades[1].nome, "GPU");
-    upgrades[1].custo = 50;
-    upgrades[1].bonus = 5;
+    strcpy(slots[1].up.nome, "GPU");
+    slots[1].up.custo = 50;
+    slots[1].up.bonus = 5;
+    slots[1].nivel = 0;
 
-    strcpy(upgrades[2].nome, "RAM");
-    upgrades[2].custo = 100;
-    upgrades[2].bonus = 10;
+    strcpy(slots[2].up.nome, "RAM");
+    slots[2].up.custo = 100;
+    slots[2].up.bonus = 10;
+    slots[2].nivel = 0;
 
-    // MATRIZ (REQ 8)
+    // MATRIZ
     int multiplicador[3][1] = {
         {1},
         {5},
@@ -216,9 +223,22 @@ int main() {
     al_init_ttf_addon();
 
     display = al_create_display(jogo->larguraTela, jogo->alturaTela);
+    if (!display) {
+        printf("Erro ao criar display\n");
+        return -1;
+    }
 
     font = al_load_ttf_font("../assets/fonts/ari-w9500.ttf", 20, 0);
+    if (!font) {
+        printf("Erro ao carregar fonte\n");
+        return -1;
+    }
+
     pc = al_load_bitmap("../assets/images/PcTeste.png");
+    if (!pc) {
+        printf("Erro ao carregar imagem\n");
+        return -1;
+    }
 
     int largura_original = al_get_bitmap_width(pc);
     int altura_original = al_get_bitmap_height(pc);
@@ -237,7 +257,7 @@ int main() {
 
     while (rodando) {
 
-        desenhar(jogo, pc, font, upgrades, multiplicador,
+        desenhar(jogo, pc, font, slots, multiplicador,
                  largura_original, altura_original);
 
         al_wait_for_event(queue, &event);
@@ -247,7 +267,7 @@ int main() {
 
         if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
 
-            tratarClique(jogo, upgrades, multiplicador,
+            tratarClique(jogo, slots, multiplicador,
                          event.mouse.x,
                          event.mouse.y);
         }
