@@ -8,6 +8,15 @@
 #include <stdlib.h>
 
 // =====================
+// ENUM (REQ 6)
+// =====================
+typedef enum {
+    MULT_1X = 0,
+    MULT_5X = 1,
+    MULT_10X = 2
+} ModoCompra;
+
+// =====================
 // STRUCT DO JOGO
 // =====================
 typedef struct {
@@ -22,7 +31,7 @@ typedef struct {
     int img_w;
     int img_h;
 
-    int opcaoCompra;
+    ModoCompra opcaoCompra;
 
 } Jogo;
 
@@ -36,7 +45,7 @@ typedef struct {
 } Upgrade;
 
 // =====================
-// REQ 10 - ANINHAMENTO
+// ANINHAMENTO (REQ 10)
 // =====================
 typedef struct {
     Upgrade up;
@@ -58,8 +67,7 @@ void inicializarJogo(Jogo *jogo) {
     jogo->img_w = 0;
     jogo->img_h = 0;
 
-    jogo->opcaoCompra = 0;
-
+    jogo->opcaoCompra = MULT_1X;
 }
 
 // =====================
@@ -75,7 +83,6 @@ void desenhar(Jogo *jogo,
 
     al_clear_to_color(al_map_rgb(0, 0, 0));
 
-    // PC
     al_draw_scaled_bitmap(pc,
         0, 0,
         largura_original, altura_original,
@@ -83,17 +90,14 @@ void desenhar(Jogo *jogo,
         jogo->img_w, jogo->img_h,
         0);
 
-    // Pontos
     char texto_pontos[50];
     sprintf(texto_pontos, "Pontos: %d", jogo->pontos);
     al_draw_text(font, al_map_rgb(255,255,255), 50, 10, 0, texto_pontos);
 
-    // Modo de compra
     char textoModo[50];
     sprintf(textoModo, "Compra: %dx", multiplicador[jogo->opcaoCompra][0]);
     al_draw_text(font, al_map_rgb(255,255,0), 50, 40, 0, textoModo);
 
-    // Upgrades (AGORA USANDO SLOT)
     for (int i = 0; i < 3; i++) {
 
         int mult = multiplicador[jogo->opcaoCompra][0];
@@ -124,19 +128,19 @@ void tratarClique(Jogo *jogo,
 
     int mult = multiplicador[jogo->opcaoCompra][0];
 
-    // TROCAR MODO
+    // trocar modo de compra
     if (x >= 50 && x <= 200 &&
         y >= 40 && y <= 70) {
 
         jogo->opcaoCompra++;
 
-        if (jogo->opcaoCompra > 2)
-            jogo->opcaoCompra = 0;
+        if (jogo->opcaoCompra > MULT_10X)
+            jogo->opcaoCompra = MULT_1X;
 
         return;
     }
 
-    // CLIQUE NO PC
+    // clique no PC
     int margemX = jogo->img_w * 0.25;
     int margemY = jogo->img_h * 0.25;
 
@@ -151,7 +155,7 @@ void tratarClique(Jogo *jogo,
         jogo->pontos += jogo->pontosPorClique;
     }
 
-    // UPGRADES (USANDO SLOT)
+    // upgrades
     for (int i = 0; i < 3; i++) {
 
         int y_up = 100 + i * 40;
@@ -165,8 +169,6 @@ void tratarClique(Jogo *jogo,
                 jogo->pontosPorClique += slots[i].up.bonus * mult;
 
                 slots[i].nivel += mult;
-
-                printf("Comprou %dx %s\n", mult, slots[i].up.nome);
             }
         }
     }
@@ -190,7 +192,6 @@ int main() {
 
     Slot slots[3];
 
-    // Inicializa upgrades dentro do Slot
     strcpy(slots[0].up.nome, "CPU");
     slots[0].up.custo = 10;
     slots[0].up.bonus = 1;
@@ -206,14 +207,12 @@ int main() {
     slots[2].up.bonus = 10;
     slots[2].nivel = 0;
 
-    // MATRIZ
     int multiplicador[3][1] = {
         {1},
         {5},
         {10}
     };
 
-    // Allegro
     if (!al_init()) return -1;
 
     al_install_mouse();
@@ -223,22 +222,9 @@ int main() {
     al_init_ttf_addon();
 
     display = al_create_display(jogo->larguraTela, jogo->alturaTela);
-    if (!display) {
-        printf("Erro ao criar display\n");
-        return -1;
-    }
 
     font = al_load_ttf_font("../assets/fonts/ari-w9500.ttf", 20, 0);
-    if (!font) {
-        printf("Erro ao carregar fonte\n");
-        return -1;
-    }
-
     pc = al_load_bitmap("../assets/images/PcTeste.png");
-    if (!pc) {
-        printf("Erro ao carregar imagem\n");
-        return -1;
-    }
 
     int largura_original = al_get_bitmap_width(pc);
     int altura_original = al_get_bitmap_height(pc);
@@ -265,19 +251,12 @@ int main() {
         if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
             rodando = false;
 
-        if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
-
+        if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
             tratarClique(jogo, slots, multiplicador,
                          event.mouse.x,
                          event.mouse.y);
-        }
     }
 
-    al_destroy_bitmap(pc);
-    al_destroy_font(font);
-    al_destroy_display(display);
-    al_destroy_event_queue(queue);
     free(jogo);
-
     return 0;
 }
