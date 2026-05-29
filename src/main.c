@@ -56,6 +56,7 @@ typedef struct {
 typedef struct {
     Upgrade up;
     int nivel;
+    ALLEGRO_BITMAP *img;
 } Slot;
 
 // =====================
@@ -299,12 +300,6 @@ void desenhar(Jogo *jogo,
     int painel_x = jogo->larguraTela - (BOTAO_W + 90);
     int start_y = 150;
 
-    ALLEGRO_BITMAP* icons[] = {
-        cpu_img,
-        gpu_img,
-        ram_img
-    };
-
     for (int i = 0; i < NUM_SLOTS; i++) {
 
         int by = start_y + (i * (BOTAO_H + ESPACAMENTO));
@@ -319,10 +314,10 @@ void desenhar(Jogo *jogo,
 
         // IMAGEM
         al_draw_scaled_bitmap(
-            icons[i],
+            slots[i].img,
             0, 0,
-            al_get_bitmap_width(icons[i]),
-            al_get_bitmap_height(icons[i]),
+            al_get_bitmap_width(slots[i].img),
+            al_get_bitmap_height(slots[i].img),
             painel_x,
             by,
             BOTAO_W,
@@ -449,6 +444,18 @@ void tratarClique(Jogo *jogo,
     }
 }
 
+void atribuirImagens(Slot slots[],
+                     ALLEGRO_BITMAP *cpu_img,
+                     ALLEGRO_BITMAP *gpu_img,
+                     ALLEGRO_BITMAP *ram_img) {
+
+    slots[0].img = cpu_img;
+    slots[1].img = gpu_img;
+    slots[2].img = ram_img;
+    
+}                    
+                     
+
 // =====================
 // MAIN
 // =====================
@@ -483,18 +490,21 @@ int main() {
     slots[0].up.custo = 10;
     slots[0].up.bonus = 1;
     slots[0].nivel = 0;
+    slots[0].img = NULL;
 
     // GPU
     strcpy(slots[1].up.nome, "GPU");
     slots[1].up.custo = 50;
     slots[1].up.bonus = 5;
     slots[1].nivel = 0;
+    slots[1].img = NULL;
 
     // RAM
     strcpy(slots[2].up.nome, "RAM");
     slots[2].up.custo = 100;
     slots[2].up.bonus = 10;
     slots[2].nivel = 0;
+    slots[2].img = NULL;
 
     // LOAD SAVE
     carregarJogo(jogo, slots);
@@ -553,6 +563,13 @@ if (!timerSave) {
     cpu_img = al_load_bitmap("../assets/images/upgrade_CPU.png");
     gpu_img = al_load_bitmap("../assets/images/upgrade_GPU.png");
     ram_img = al_load_bitmap("../assets/images/upgrade_RAM.png");
+
+    atribuirImagens(
+    slots,
+    cpu_img,
+    gpu_img,
+    ram_img
+);
 
     if (!pc || !menu ||
         !cpu_img || !gpu_img || !ram_img) {
