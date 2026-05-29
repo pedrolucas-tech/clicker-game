@@ -132,6 +132,23 @@ void carregarJogo(Jogo *jogo, Slot slots[]) {
 }
 
 // =====================
+// RECURSIVIDADE
+// CALCULAR CUSTO
+// =====================
+int calcularCustoRecursivo(int custoBase, int nivel) {
+
+    // CASO BASE
+    if (nivel == 0)
+        return custoBase;
+
+    // CHAMADA RECURSIVA
+    return calcularCustoRecursivo(
+        custoBase,
+        nivel - 1
+    ) * 1.6;
+}
+
+// =====================
 // ORDENAÇÃO BUBBLE SORT
 // POR CUSTO
 // =====================
@@ -141,8 +158,19 @@ void ordenarUpgrades(Slot slots[]) {
 
         for (int j = 0; j < NUM_SLOTS - 1 - i; j++) {
 
-            if (slots[j].up.custo >
-                slots[j + 1].up.custo) {
+            int custoAtual =
+                calcularCustoRecursivo(
+                    slots[j].up.custo,
+                    slots[j].nivel
+                );
+
+            int proximoCusto =
+                calcularCustoRecursivo(
+                    slots[j + 1].up.custo,
+                    slots[j + 1].nivel
+                );
+
+            if (custoAtual > proximoCusto) {
 
                 Slot temp = slots[j];
 
@@ -281,7 +309,13 @@ void desenhar(Jogo *jogo,
 
         int by = start_y + (i * (BOTAO_H + ESPACAMENTO));
 
-        int custoTotal = slots[i].up.custo * mult;
+        int custoAtual =
+            calcularCustoRecursivo(
+                slots[i].up.custo,
+                slots[i].nivel
+            );
+
+        int custoTotal = custoAtual * mult;
 
         // IMAGEM
         al_draw_scaled_bitmap(
@@ -374,21 +408,24 @@ void tratarClique(Jogo *jogo,
 
             for (int j = 0; j < mult; j++) {
 
-                if (jogo->pontos >= slots[i].up.custo) {
+    int custoAtual =
+        calcularCustoRecursivo(
+            slots[i].up.custo,
+            slots[i].nivel
+        );
 
-                    jogo->pontos -= slots[i].up.custo;
+    if (jogo->pontos >= custoAtual) {
 
-                    jogo->pontosPorClique +=
-                        slots[i].up.bonus;
+        jogo->pontos -= custoAtual;
 
-                    slots[i].nivel++;
+        jogo->pontosPorClique +=
+            slots[i].up.bonus;
 
-                    slots[i].up.custo =
-                         (int)(slots[i].up.custo * 1.6);
+        slots[i].nivel++;
 
-                    ordenarUpgrades(slots);    
-                }
-            }
+        ordenarUpgrades(slots);
+    }
+}
 
             return;
         }
