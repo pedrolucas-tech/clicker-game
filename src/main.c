@@ -60,6 +60,39 @@ typedef struct {
 } Slot;
 
 // =====================
+// PILHA DE COMPRAS
+// =====================
+typedef struct {
+    char nome[50];
+} Compra;
+
+typedef struct {
+    Compra itens[100];
+    int topo;
+} Pilha;
+
+// =====================
+// PILHA
+// =====================
+void inicializarPilha(Pilha *pilha) {
+
+    pilha->topo = -1;
+}
+
+void pushCompra(Pilha *pilha, char nome[]) {
+
+    if (pilha->topo >= 99)
+        return;
+
+    pilha->topo++;
+
+    strcpy(
+        pilha->itens[pilha->topo].nome,
+        nome
+    );
+}
+
+// =====================
 // INICIALIZAÇÃO
 // =====================
 void inicializarJogo(Jogo *jogo) {
@@ -217,6 +250,7 @@ void desenhar(Jogo *jogo,
               ALLEGRO_BITMAP *ram_img,
               ALLEGRO_FONT *font,
               Slot slots[],
+              Pilha *historico,
               int multiplicador[3][1],
               int largura_original,
               int altura_original) {
@@ -292,6 +326,19 @@ void desenhar(Jogo *jogo,
         base_pc_y + 60,
         ALLEGRO_ALIGN_CENTER,
         "Melhor Upgrade: %s",
+        
+if (historico->topo >= 0) {
+
+    al_draw_textf(
+        font,
+        al_map_rgb(255,150,0),
+        centro_pc_x,
+        base_pc_y + 90,
+        ALLEGRO_ALIGN_CENTER,
+        "Ultima compra: %s",
+        historico->itens[historico->topo].nome
+    );
+}
         recomendado->up.nome
     );
 }
@@ -371,6 +418,7 @@ void desenhar(Jogo *jogo,
 // =====================
 void tratarClique(Jogo *jogo,
                   Slot slots[],
+                  Pilha *historico,
                   int multiplicador[3][1],
                   int x, int y) {
 
@@ -418,7 +466,12 @@ void tratarClique(Jogo *jogo,
 
         slots[i].nivel++;
 
-        ordenarUpgrades(slots);
+        pushCompra(
+            historico,
+            slots[i].up.nome
+);
+
+        qordenarUpgrades(slots);
     }
 }
 
@@ -477,9 +530,13 @@ int main() {
     ALLEGRO_FONT *font = NULL;
 
     Jogo *jogo = malloc(sizeof(Jogo));
+   
+    Pilha historico;
+    inicializarPilha(&historico);
 
     if (!jogo)
         return -1;
+
 
     inicializarJogo(jogo);
 
@@ -628,6 +685,7 @@ if (!timerSave) {
             ram_img,
             font,
             slots,
+            &historico,
             multiplicador,
             largura_original,
             altura_original
@@ -654,10 +712,11 @@ if (!timerSave) {
             tratarClique(
                 jogo,
                 slots,
+                &historico,
                 multiplicador,
                 event.mouse.x,
                 event.mouse.y
-            );
+);
         }
     }
 
